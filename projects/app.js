@@ -12,44 +12,39 @@ const productsDOM = document.querySelector(".products-center");
 
 //cart
 let cart = [];
+let buttonsDOM = [];
 
 //getting products
 class Products {
-    async getProducts() {
-        try {
-            let result = await fetch("products.json");
-            let data = await result.json();
-            let products = data.items
-            products = products.map(item => {
-                const {
-                    title,
-                    price
-                } = item.fields;
-                const {
-                    id
-                } = item.sys
-                const image = item.fields.image.fields.file.url
-                return {
-                    title,
-                    price,
-                    id,
-                    image
-                }
-            })
-            return products
-        } catch (error) {
-            console.log(error);
-        }
+  async getProducts() {
+    try {
+      let result = await fetch("products.json");
+      let data = await result.json();
+      let products = data.items;
+      products = products.map(item => {
+        const { title, price } = item.fields;
+        const { id } = item.sys;
+        const image = item.fields.image.fields.file.url;
+        return {
+          title,
+          price,
+          id,
+          image
+        };
+      });
+      return products;
+    } catch (error) {
+      console.log(error);
     }
+  }
 }
 
 //display priducts
 class UI {
-    displayProduct(products) {
-
-        let result = "";
-        products.forEach(product => {
-            result += ` <!-- single product -->
+  displayProduct(products) {
+    let result = "";
+    products.forEach(product => {
+      result += ` <!-- single product -->
             <article class="product">
             <div class="img-container">
             <img src="${product.image}" alt="product" class="product-img">
@@ -60,31 +55,102 @@ class UI {
             <h3>${product.title}</h3>
             <h4>${product.price} zl</h4>
             </article>
-            <!-- end of single product -->`
-        });
+            <!-- end of single product -->`;
+    });
 
-        productsDOM.innerHTML = result
+    productsDOM.innerHTML = result;
+  }
+  getBagButtons() {
+    const buttons = [...document.querySelectorAll(".bag-btn")];
+    buttonsDOM = buttons;
+    console.log(buttons);
 
-        console.log(result);
-    }
+    buttons.forEach(button => {
+      let id = button.dataset.id;
+      let inCart = cart.find(item => item.id === id);
+      if (inCart) {
+        button.innerText = "In Cart";
+        button.disable = true;
+      }
+      button.addEventListener("click", event => {
+        event.target.innerText = "In Cart";
+        event.target.disable = true;
+        // get product from products
+        let cartItem = { ...Storage.getProduct(id), amount: 1 };
+        // add product to the cart
+        cart = [...cart, cartItem];
+        // save cart inlocal storage
+        Storage.saveCart(cart);
+        //  set cart values
+        this.setCartValue(cart);
+        // display cart item
+        this.addCartItem(cartItem);
+        // show the cart
+        this.showCart();
+      });
+    });
+  }
+  setCartValue(cart) {
+    let tempTotal = 0;
+    let itemsTotal = 0;
+    cart.map(item => {
+      tempTotal += item.price * item.amount;
+      itemsTotal += item.amount;
+    });
+    cartTotal.innerText = parseFloat(tempTotal.toFixed(2));
+    cartItems.innerText = itemsTotal;
+  }
+  addCartItem(item) {
+    const div = document.createElement("div");
+    div.classList.add("cart-item");
+    div.innerHTML = ` <img src=${item.image} alt="product">
+      <div>
+          <h4>${item.title}</h4>
+          <h5> ${item.price}</h5>
+          <span class="remove-item" ${item.id}>remove</span>
+      </div>
+      <div>
+          <i class="fas fa-chevron-up" ${item.id}></i>
+          <p class="item-amount">${item.amount}</p>
+          <i class="fas fa-chevron-down ${item.id}"></i>
+      </div>`;
+    cartContent.appendChild(div);
+  }
+  showCart() {
+    cartOverlay.classList.add("transparentBcg");
+    cartDOM.classList.add("showCart");
+  }
 }
 
 // local storage
 class Storage {
-    static saveProducts(products) {
-        localStorage.setItem("products", JSON.stringify(products))
-    }
+  static saveProducts(products) {
+    localStorage.setItem("products", JSON.stringify(products));
+  }
+
+  static getProduct(id) {
+    let products = JSON.parse(localStorage.getItem("products"));
+    return products.find(product => product.id === id);
+  }
+  static saveCart(cart) {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    const ui = new UI()
-    const products = new Products()
+  const ui = new UI();
+  const products = new Products();
 
-    //get all product
+  //get all product
 
-    products.getProducts().then(products => {
-        ui.displayProduct(products)
-        Storage.saveProducts(products)
+  products
+    .getProducts()
+    .then(products => {
+      ui.displayProduct(products);
+      Storage.saveProducts(products);
+    })
+    .then(() => {
+      //   get bac-btn
+      ui.getBagButtons();
     });
-
-})
+});
